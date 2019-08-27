@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0 python tools/train.py configs/ssdmv2_300_coco_cosine_l128chn.py --gpus 1 --validate

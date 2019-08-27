@@ -8,11 +8,22 @@ from mmdet.core import AnchorGenerator, anchor_target, multi_apply
 from ..losses import smooth_l1_loss
 from ..registry import HEADS
 from .anchor_head import AnchorHead
+from torch.nn import Conv2d, Sequential, BatchNorm2d
 
-
-# TODO: add loss evaluator for SSD
+def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0):
+    """Replace Conv2d with a depthwise Conv2d and Pointwise Conv2d.
+    """
+    ReLU = nn.ReLU6
+    return Sequential(
+        Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size,
+               groups=in_channels, stride=stride, padding=padding),
+        BatchNorm2d(in_channels),
+        ReLU(),
+        Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1),
+    )
+# TODO: add loss evaluator for SSDLite
 @HEADS.register_module
-class SSDHead(AnchorHead):
+class SSDLiteHead(AnchorHead):
 
     def __init__(self,
                  input_size=300,
@@ -33,17 +44,18 @@ class SSDHead(AnchorHead):
         cls_convs = []
         for i in range(len(in_channels)):
             reg_convs.append(
-                nn.Conv2d(
+                SeperableConv2d(
                     in_channels[i],
                     num_anchors[i] * 4,
                     kernel_size=3,
                     padding=1))
             cls_convs.append(
-                nn.Conv2d(
+                SeperableConv2d(
                     in_channels[i],
                     num_anchors[i] * num_classes,
                     kernel_size=3,
                     padding=1))
+
         self.reg_convs = nn.ModuleList(reg_convs)
         self.cls_convs = nn.ModuleList(cls_convs)
 
@@ -72,10 +84,7 @@ class SSDHead(AnchorHead):
                 max_sizes.insert(0, int(input_size * 15 / 100))
         self.anchor_generators = []
         self.anchor_strides = anchor_strides
-        print(min_sizes)
-        print(max_sizes)
         for k in range(len(anchor_strides)):
-            print(k)
             base_size = min_sizes[k]
             stride = anchor_strides[k]
             ctr = ((stride - 1) / 2., (stride - 1) / 2.)

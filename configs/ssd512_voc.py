@@ -1,5 +1,5 @@
 # model settings
-input_size = 300
+input_size = 512
 model = dict(
     type='SingleStageDetector',
     pretrained='open-mmlab://vgg16_caffe',
@@ -16,11 +16,11 @@ model = dict(
     bbox_head=dict(
         type='SSDHead',
         input_size=input_size,
-        in_channels=(512, 1024, 512, 256, 256, 256),
+        in_channels=(512, 1024, 512, 256, 256, 256, 256),
         num_classes=21,
-        anchor_strides=(8, 16, 32, 64, 100, 300),
-        basesize_ratio_range=(0.2, 0.9),
-        anchor_ratios=([2], [2, 3], [2, 3], [2, 3], [2], [2]),
+        anchor_strides=(8, 16, 32, 64, 128, 256, 512),
+        basesize_ratio_range=(0.15, 0.9),
+        anchor_ratios=([2], [2, 3], [2, 3], [2, 3], [2, 3], [2], [2]),
         target_means=(.0, .0, .0, .0),
         target_stds=(0.1, 0.1, 0.2, 0.2)))
 cudnn_benchmark = True
@@ -48,19 +48,16 @@ dataset_type = 'VOCDataset'
 data_root = 'data/VOCdevkit/'
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[1, 1, 1], to_rgb=True)
 data = dict(
-    imgs_per_gpu=16,
-    workers_per_gpu=6,
+    imgs_per_gpu=4,
+    workers_per_gpu=2,
     train=dict(
         type='RepeatDataset',
-        times=10,
+        times=1,
         dataset=dict(
             type=dataset_type,
-            ann_file=[
-                data_root + 'VOC2007/ImageSets/Main/trainval.txt',
-                data_root + 'VOC2012/ImageSets/Main/trainval.txt'
-            ],
-            img_prefix=[data_root + 'VOC2007/', data_root + 'VOC2012/'],
-            img_scale=(300, 300),
+            ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
+            img_prefix=data_root + 'VOC2007/',
+            img_scale=(512, 512),
             img_norm_cfg=img_norm_cfg,
             size_divisor=None,
             flip_ratio=0.5,
@@ -85,7 +82,7 @@ data = dict(
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
         img_prefix=data_root + 'VOC2007/',
-        img_scale=(300, 300),
+        img_scale=(512, 512),
         img_norm_cfg=img_norm_cfg,
         size_divisor=None,
         flip_ratio=0,
@@ -97,7 +94,7 @@ data = dict(
         type=dataset_type,
         ann_file=data_root + 'VOC2007/ImageSets/Main/test.txt',
         img_prefix=data_root + 'VOC2007/',
-        img_scale=(300, 300),
+        img_scale=(512, 512),
         img_norm_cfg=img_norm_cfg,
         size_divisor=None,
         flip_ratio=0,
@@ -110,11 +107,10 @@ optimizer = dict(type='SGD', lr=1e-3, momentum=0.9, weight_decay=5e-4)
 optimizer_config = dict()
 # learning policy
 lr_config = dict(
-    policy='step',
+    policy='cosine',
     warmup='linear',
-    warmup_iters=500,
-    warmup_ratio=1.0 / 3,
-    step=[16, 20])
+    warmup_iters=100,
+    warmup_ratio=1.0 / 3)
 checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
@@ -125,11 +121,10 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=1)
 total_epochs = 24
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/ssd300_voc'
+work_dir = './work_dirs/ssd512_voc'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
